@@ -1,0 +1,9 @@
+1. try null hypothesis: {OST/... good(range) music leads to good(range_const) animes/games} []
+
+2. try null hypothesis: {bilibili.com etc. third party adjustment affect & different variance in ratings}
+
+3. try test the null hypothesis that {japanese works have higher ratings than other countries'} (use chinese words like "日本" to sort)
+
+4. try test the null hypothesis that {novels/mangas get higher ratings when adapted to higher media anime/games }
+
+5. for those who are giving out bad reviews (rating <= 4), truely effective?
