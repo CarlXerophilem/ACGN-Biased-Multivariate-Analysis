@@ -1,0 +1,33 @@
+format of jsonlite:
+
+@param: 
+id(int), type(int--1), name(String), name_cn(String); infobox(String{}), platform(int), summary"(String), "nsfw"(boolean), tags(String[{}]), meta_tags(String[{}]), score(float), score_details(int[]), rank"(int), date("year-month-day"), favorite(String[]), series(boolean).
+
+
+
+@lang.StringDecompose:
+NLP-simple?
+
+
+@newChat
+
+this is a jsonlite washer i uploaded, for reading this form of data:
+
+{"id":7,"type":4,"name":"Unreal Tournament 3","name_cn":"虚幻竞技场3","infobox":"{{Infobox Game\r\n|中文名= 虚幻竞技场3\r\n|别名={\r\n}\r\n|平台={\r\n[Mac OS]\r\n[xbox360]\r\n[windows]\r\n[PS3]\r\n}\r\n|游戏类型= FPS\r\n|游戏引擎= Unreal Engine 3\r\n|游玩人数= \r\n|发行日期= 2007年11月19日\r\n|售价= \r\n|website= \r\n}}","platform":4001,"summary":"　　《虚幻竞技场3》（Unreal Tournament 3，UT3）是由Epic Games所开发的第一人称射击游戏，是继虚幻II之后的新一代虚幻游戏，...","nsfw":false,"tags":[{"name":"FPS","count":11},{"name":"UT3","count":10},{"name":"PC","count":7},{"name":"虚幻竞技场","count":6},{"name":"UT","count":5},{"name":"枪枪枪","count":3},{"name":"Xbox360","count":2},{"name":"X360","count":1},{"name":"单机","count":1},{"name":"EPIC","count":1},{"name":"欧美","count":1}],"meta_tags":["FPS","Mac","PS3","Windows","Xbox360","游戏"],"score":7.2,"score_details":{"1":0,"2":0,"3":0,"4":1,"5":2,"6":9,"7":17,"8":17,"9":4,"10":0},"rank":2722,"date":"2007-11-19","favorite":{"wish":11,"done":71,"doing":11,"on_hold":13,"dropped":18},"series":false} 
+{"id":8,"type":2,"name":"コードギアス 反逆のルルーシュR2","name_cn":"Code Geass 反叛的鲁路修R2","infobox":"{{Infobox animanga/TVAnime\r\n|中文名= Code Geass 反叛的鲁路修R2\r\n|别名={\r\n[叛逆的鲁路修R2]\r\n[Code Geass: Hangyaku no Lelouch R2]\r\n[叛逆的勒鲁什R2]\r\n[叛逆的鲁鲁修R2]\r\n[コードギアス 反逆のルルーシュR2]\r\n[Code Geass: Lelouch of the Rebellion R2]\r\n[叛逆的勒路什R2]\r\n}\r\n|话数= 25\r\n|放送开始= 2008年4月6日\r\n|放送星期= \r\n|官方网站= http://www.geass.jp/r2/\r\n|在线播放平台= \r\n|播放电视台= 每日放送\r\n|其他电视台= \r\n|播放结束= 2008年9月28日\r\n|导演= 谷口悟朗\r\n|音乐= 中川幸太郎、黒石ひとみ\r\n|其他= \r\n|Copyright= （C）2006 SUNRISE inc./MBS\r\n|系列构成= 大河内一楼\r\n|人物原案= CLAMP\r\n|人物设定= 木村貴宏\r\n|美术监督= 菱沼由典\r\n|色彩设计= 岩沢れい子\r\n|摄影监督= 大矢創太\r\n|音响监督= 浦上靖夫、井澤基\r\n|动画制作= サンライズ\r\n|制片人= 諸冨洋史、河口佳高、峯岸卓生、湯川淳、前田俊博、谷口廣次朗\r\n|製作= 毎日放送、サンライズ、コードギアス製作委員会（サンライズ、バンダイビジュアル、バンダイ、バンダイナムコエンターテインメン、博報堂DYメディアパートナーズ）\r\n}}","platform":1,"summary":"　　“东京决战”一年后，布里塔尼亚少年鲁路修在11区（原日本国）过着平凡的学生生活。但是，鲁路修与弟弟罗洛的一次出行，遇到了黑色骑士团的余党。在与少女C.C再次结成契约之后，尘封的记忆摆在了鲁路修的面前。\r\n　　身为帝国王子的鲁路修，为了建立... ","nsfw":false,"tags":[{"name":"叛逆的鲁鲁修","count":2882},{"name":"SUNRISE","count":2191},{"name":"反逆のルルーシュ","count":1443},{"name":"TV","count":1419},{"name":"原创","count":1336},{"name":"还是死妹控","count":1084},{"name":"妹控","count":1022},{"name":"2008","count":919},{"name":"codegeass","count":885},{"name":"谷口悟朗","count":804},{"name":"鲁路修","count":683}],"meta_tags":["机战","TV","日本","原创","战斗"],"score":8.3,"score_details":{"1":52,"2":21,"3":42,"4":83,"5":212,"6":707,"7":2373,"8":5655,"9":5191,"10":2797},"rank":84,"date":"2008-04-06","favorite":{"wish":2005,"done":26260,"doing":403,"on_hold":420,"dropped":168},"series":false} 
+...
+
+each item is encased in a bracket {}.
+I want to update my reader.py:  
+First,  remove null score as the same, remove all type=6 items. remove summary{}, remove meta_tags:[]. Remain the comment_amount while specify the given score to higher accuracy by counting the length of score_details. 
+secondly, keep the rank info and arrage the output csv with rank-ascending order.
+third, add missing type[5] as novel, by reading the “小说” keyword in the tags{}.
+fourth, lighten the csv by converting the infobox{} to episode_number (sorting “集数" and "话数" in different types=[1,2]). convert favorite to played_amount by adding {"done": aomunt} and {"doing": amount}.
+keep other things like platform, series and nsfw unchanged.
+in all, the final csv should contain rank,date, name, name_cn, score, comment_amount, episode_number, played_amount, tags, platform, series, nsfw.
+there will be two csv file of two range of date: old_anime.csv(1940-1-1, 1980-1-1) and modern_anime.csv(1980-1-1, 2025-1-1).
+
+# reducing zeros is optional but recommanded!
+@Output
+
+
