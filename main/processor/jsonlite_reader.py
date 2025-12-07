@@ -1,115 +1,195 @@
 import pandas as pd
 import json
 import os
+import re
+import numpy as np
 from datetime import datetime
 
 # ==========================================
 # CONFIGURATION
 # ==========================================
-INPUT_FILE = 'C:\\Users\\Administrator\\Desktop\\mathss\\math 3700\\3700 project\\dumpGitData\\subject.jsonlines'
-OUTPUT_FILE = 'C:\\Users\\Administrator\\Desktop\\mathss\\math 3700\\3700 project\\src\\main\\processor\\categorical_table.csv'
-CHUNK_SIZE = 10000  # Number of rows to process at a time (adjust based on RAM)
+INPUT_FILE = 'C:\\Users\\Administrator\\Desktop\\mathss\\math 3700\\project\\dumpGitData\\subject.jsonlines'
+# OUTPUT_FILE = 'C:\\Users\\Administrator\\Desktop\\mathss\\math 3700\\3700 project\\src\\main\\processor\\categorical_table.csv'
+OUTPUT_OLD = "old_anime.csv"
+OUTPUT_MODERN = "modern_anime.csv"
+CHUNK_SIZE = 8000 # Number of rows to process at a time (adjust based on RAM)
 
-# Filter Settings
-DATE_START = pd.Timestamp('1980-01-01')
-DATE_END = pd.Timestamp('2025-01-01')
-VALID_TYPES = [1, 2, 4]
+# Date partitions
+OLD_START = pd.Timestamp("1940-01-01")
+OLD_END = pd.Timestamp("1980-01-01")
+MODERN_START = pd.Timestamp("1980-01-01")
+MODERN_END = pd.Timestamp("2025-01-01")
 
-# ==========================================
-# HELPER FUNCTIONS
-# ==========================================
+# Remove type = 6 only
+INVALID_TYPES = [6]
+
+# ==========================================================
+# UTILITIES
+# ==========================================================
+
+def extract_episode_number(infobox):
+    """Extract episode number from infobox across manga/anime/novel."""
+    if not isinstance(infobox, str):
+        return 0
+    match = re.search(r"[集话]数\s*=\s*(\d+)", infobox)
+    if match:
+        return int(match.group(1))
+    return 0
+
 
 def clean_tags(tag_list):
-    """
-    NLP-Simple: Decomposes the complex tag list of dictionaries 
-    into a simple comma-separated string of category names.
-    Example: [{'name': 'Wii', ...}, {'name': 'Sim', ...}] -> "wii, sim"
-    """
+    """Convert [{'name': 'FPS', ...}, {...}] to comma-separated distinct names."""
     if not isinstance(tag_list, list):
         return ""
-    
-    # Extract names, lowercase for clustering, and remove duplicates
-    extracted_tags = [t.get('name', '').strip().lower() for t in tag_list if 'name' in t]
-    
-    # Remove empty strings and join
-    return ",".join(list(set(filter(None, extracted_tags))))
+    names = [t.get("name", "").strip() for t in tag_list if isinstance(t, dict)]
+    names = list({n for n in names if n})
+    return ",".join(names)
 
+
+def compute_comment_amount(score_details):
+    """Sum all score_details."""
+    if not isinstance(score_details, dict):
+        return 0
+    return int(sum(score_details.get(str(k), 0) for k in range(1, 11)))
+
+
+def compute_skewness(score_details):
+    """Compute skewness from score distribution."""
+    if not isinstance(score_details, dict):
+        return 0.0
+
+    scores = []
+    for s in range(1, 11):
+        count = score_details.get(str(s), 0)
+        if count > 0:
+            scores.extend([s] * count)
+
+    if len(scores) < 3:
+        return 0.0
+
+    arr = np.array(scores, dtype=float)
+    mean = arr.mean()
+    std = arr.std()
+    if std == 0:
+        return 0.0
+
+    skew = np.mean((arr - mean) ** 3) / (std ** 3)
+    return float(skew)
+
+
+def compute_played_amount(fav):
+    """favorite.done + favorite.doing"""
+    if not isinstance(fav, dict):
+        return 0
+    return int(fav.get("done", 0)) + int(fav.get("doing", 0))
+
+
+# ==========================================================
+# PROCESS ONE CHUNK
+# ==========================================================
 def process_chunk(chunk):
-    """
-    Applies filtering and transformation logic to a single dataframe chunk.
-    """
-    # 1. Date Filter
-    # Convert to datetime, coerce errors to NaT
-    chunk['date_obj'] = pd.to_datetime(chunk['date'], errors='coerce')
-    date_mask = (chunk['date_obj'] >= DATE_START) & (chunk['date_obj'] <= DATE_END)
-    
-    # 2. Type Filter
-    type_mask = chunk['type'].isin(VALID_TYPES)
-    
-    # 3. NSFW Filter (Ensure strictly False)
-    nsfw_mask = chunk['nsfw'] == False
-    
-    # Apply Filters
-    filtered_df = chunk[date_mask & type_mask & nsfw_mask].copy()
-    
-    if filtered_df.empty:
-        return filtered_df
+    # Remove null score
+    chunk = chunk[chunk["score"].notnull()]
 
-    # 4. NLP/String Decomposition on Tags
-    filtered_df['processed_tags'] = filtered_df['tags'].apply(clean_tags)
-    
-    # 5. NLP/String Decomposition on Meta Tags
-    # Meta tags in your JSON are just strings: ["SIM", "Wii"]
-    filtered_df['processed_meta'] = filtered_df['meta_tags'].apply(
-        lambda x: ",".join([str(i).lower() for i in x]) if isinstance(x, list) else ""
-    )
+    # Remove type = 6
+    chunk = chunk[~chunk["type"].isin(INVALID_TYPES)]
 
-    # 6. Select and Rename final columns
-    final_df = filtered_df[[
-        'id', 'name', 'name_cn', 'type', 'date', 
-        'score', 'processed_tags', 'processed_meta'
-    ]]
-    
-    return final_df
+    if chunk.empty:
+        return pd.DataFrame(), pd.DataFrame()
 
-# ==========================================
-# MAIN EXECUTION
-# ==========================================
+    # Convert date
+    chunk["date_obj"] = pd.to_datetime(chunk["date"], errors="coerce")
+
+    # Promote novel type
+    def correct_type(row):
+        if isinstance(row["tags"], list):
+            if any(t.get("name") == "小说" for t in row["tags"] if isinstance(t, dict)):
+                return 5
+        return row["type"]
+
+    chunk["type"] = chunk.apply(correct_type, axis=1)
+
+    # Extract episode number
+    chunk["episode_number"] = chunk["infobox"].apply(extract_episode_number)
+
+    # Compute comment amount
+    chunk["comment_amount"] = chunk["score_details"].apply(compute_comment_amount)
+
+    # Compute skewness
+    chunk["sk"] = chunk["score_details"].apply(compute_skewness)
+
+    # Played amount
+    chunk["played_amount"] = chunk["favorite"].apply(compute_played_amount)
+
+    # Clean tags
+    chunk["tags_clean"] = chunk["tags"].apply(clean_tags)
+
+    # Select final fields
+    final = chunk[
+        [
+            "rank",
+            "date",
+            "name",
+            "name_cn",
+            "score",
+            "comment_amount",
+            "episode_number",
+            "played_amount",
+            "tags_clean",
+            "platform",
+            "series",
+            "nsfw",
+            "sk",
+            "date_obj",
+        ]
+    ].copy()
+
+    # Partition
+    old_mask = (final["date_obj"] >= OLD_START) & (final["date_obj"] < OLD_END)
+    mod_mask = (final["date_obj"] >= MODERN_START) & (final["date_obj"] <= MODERN_END)
+
+    old = final[old_mask].copy()
+    modern = final[mod_mask].copy()
+
+    return old, modern
+
+
+# ==========================================================
+# MAIN
+# ==========================================================
 def main():
-    print(f"Starting processing of {INPUT_FILE}...")
-    
-    # Check if file exists
+    print("Starting processing...")
+
     if not os.path.exists(INPUT_FILE):
-        print(f"Error: {INPUT_FILE} not found. Please run the sample data generator first.")
+        print("Input file not found.")
         return
 
-    first_chunk = True
-    total_rows = 0
+    old_list = []
+    modern_list = []
 
-    # Read JSON in chunks (lines=True assumes Newline Delimited JSON, common for big data)
-    # If strictly a JSON array, standard json.load is needed, but pd.read_json handles lines best.
-    try:
-        with pd.read_json(INPUT_FILE, lines=True, chunksize=CHUNK_SIZE, encoding='utf-8') as reader:
-            for chunk in reader:
-                processed_chunk = process_chunk(chunk)
-                
-                if not processed_chunk.empty:
-                    # Write to CSV
-                    # mode='w' for first chunk, 'a' (append) for subsequent
-                    mode = 'w' if first_chunk else 'a'
-                    header = first_chunk # Only write header once
-                    
-                    processed_chunk.to_csv(OUTPUT_FILE, mode=mode, header=header, index=False, encoding='utf-8-sig')
-                    
-                    total_rows += len(processed_chunk)
-                    first_chunk = False
-                    print(f"Processed batch... Total rows saved: {total_rows}")
-        
-        print(f"Done! Cleaned data saved to {OUTPUT_FILE}")
+    reader = pd.read_json(INPUT_FILE, lines=True, chunksize=CHUNK_SIZE, encoding="utf-8")
 
-    except ValueError as e:
-        print("Error reading JSON. Ensure the format is Newline Delimited JSON (jsonl).")
-        print(f"Details: {e}")
+    for chunk in reader:
+        old, modern = process_chunk(chunk)
+        if not old.empty:
+            old_list.append(old)
+        if not modern.empty:
+            modern_list.append(modern)
+
+    if old_list:
+        old_final = pd.concat(old_list, ignore_index=True).sort_values("rank")
+        old_final.drop(columns=["date_obj"], inplace=True)
+        old_final.to_csv(OUTPUT_OLD, index=False, encoding="utf-8-sig")
+        print(f"Saved: {OUTPUT_OLD}")
+
+    if modern_list:
+        modern_final = pd.concat(modern_list, ignore_index=True).sort_values("rank")
+        modern_final.drop(columns=["date_obj"], inplace=True)
+        modern_final.to_csv(OUTPUT_MODERN, index=False, encoding="utf-8-sig")
+        print(f"Saved: {OUTPUT_MODERN}")
+
+    print("Completed successfully.")
+
 
 if __name__ == "__main__":
     main()
