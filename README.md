@@ -107,7 +107,7 @@ download main dataset release on Bangumi [releases](https://github.com/bangumi/A
   | `name`            | 条目名                                                                   |
   | `name_cn`         | 条目简体中文名                                                            |
   | `episode_number`  | 条目集数或话数，来自原 **infobox:{}**                                                 |
-  | `platform`        | 条目平台细分？，即 OST(0)/剧场版(3)/TV Anime(1)/ Novel(1002)/Game(4001) /Manga,Comics (1001) /公式书(1006)                               |
+  | `platform`        | 条目平台细分？，即 OST(0)/?(2)/剧场版(3)/3D-Netflix(5)/TV Anime(1)/ Novel(1002)/Game(4001) /Manga,Comics (1001) /公式书(1006)                               |
   | `nsfw`            | 是否为NSFW（Not Safe For Work，是否含有成人内容）                           |
   | `date`            | 发行日期 (一般情况)                                                                 |
   | `played_amount`        | 阅读人数，等于看过数+在看数                                     |
