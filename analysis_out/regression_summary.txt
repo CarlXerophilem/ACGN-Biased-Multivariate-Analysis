@@ -1,0 +1,32 @@
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:            delta_score   R-squared:                       0.288
+Model:                            OLS   Adj. R-squared:                  0.288
+Method:                 Least Squares   F-statistic:                 1.212e+04
+Date:                Tue, 09 Dec 2025   Prob (F-statistic):               0.00
+Time:                        04:02:11   Log-Likelihood:            -5.7158e+05
+No. Observations:              239867   AIC:                         1.143e+06
+Df Residuals:                  239858   BIC:                         1.143e+06
+Df Model:                           8                                         
+Covariance Type:            nonrobust                                         
+======================================================================================================
+                                         coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------------------------------
+Intercept                              3.3605      0.042     79.168      0.000       3.277       3.444
+C(from_type_cat)[T.game]              -0.0014      0.046     -0.030      0.976      -0.092       0.089
+C(from_type_cat)[T.novel-detected]     0.9526      0.054     17.765      0.000       0.847       1.058
+C(from_type_cat)[T.novel/book]         0.8129      0.037     21.998      0.000       0.740       0.885
+C(to_type_cat)[T.game]                -0.9331      0.044    -21.391      0.000      -1.019      -0.848
+C(to_type_cat)[T.novel-detected]      -1.1863      0.056    -21.033      0.000      -1.297      -1.076
+C(to_type_cat)[T.novel/book]          -3.4661      0.033   -106.051      0.000      -3.530      -3.402
+dt_years_f                            -0.0672      0.002    -27.503      0.000      -0.072      -0.062
+score_a_f                             -0.4813      0.002   -288.362      0.000      -0.485      -0.478
+==============================================================================
+Omnibus:                    36175.096   Durbin-Watson:                   2.177
+Prob(Omnibus):                  0.000   Jarque-Bera (JB):            78939.284
+Skew:                           0.899   Prob(JB):                         0.00
+Kurtosis:                       5.160   Cond. No.                         59.2
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
